@@ -50,7 +50,7 @@ class AulaController extends Controller
                 'numero' => $i->estudante->numero,
                 'nome' => $i->estudante->nome,
                 'em_atraso' => $i->em_atraso,
-                'assiduidade' => $assiduidade->get($i->id),
+                'assiduidade' => $assiduidade[$i->id] ?? null,
             ])->values(),
             'aulas' => $aulas->map(fn (Aula $a) => [
                 'id' => $a->id,

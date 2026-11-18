@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Models\Aula;
 use App\Models\Docente;
 use App\Models\Horario;
-use App\Models\Inscricao;
 use App\Models\Leccionacao;
 use App\Models\Presenca;
 use App\Models\User;
@@ -102,9 +101,9 @@ class AulaService
      * A assiduidade de cada estudante da disciplina: aulas, presenças, atrasos, faltas (e quantas justificadas) e a
      * percentagem, que conta como presença o atraso e a falta justificada.
      *
-     * @return Collection<int, array{aulas: int, presencas: int, atrasos: int, faltas: int, justificadas: int, percentagem: int|null, abaixo: bool}>
+     * @return array<int, array{aulas: int, presencas: int, atrasos: int, faltas: int, justificadas: int, percentagem: int|null, abaixo: bool}>
      */
-    public function assiduidade(Leccionacao $leccionacao): Collection
+    public function assiduidade(Leccionacao $leccionacao): array
     {
         $aulas = Aula::where('leccionacao_id', $leccionacao->id)->count();
         $minima = (int) Escala::parametro('assiduidade_minima');
@@ -112,14 +111,15 @@ class AulaService
             ->whereHas('aula', fn ($q) => $q->where('leccionacao_id', $leccionacao->id))
             ->get()->groupBy('inscricao_id');
 
-        return $leccionacao->inscricoes()->get()->mapWithKeys(function (Inscricao $i) use ($contagens, $aulas, $minima) {
+        $resultado = [];
+        foreach ($leccionacao->inscricoes()->get() as $i) {
             /** @var Collection<int, Presenca> $minhas */
             $minhas = $contagens->get($i->id) ?? collect();
             $faltas = $minhas->where('estado', Presenca::FALTA);
             $injustificadas = $faltas->where('justificada', false)->count();
             $percentagem = $aulas === 0 ? null : (int) floor(($aulas - $injustificadas) * 100 / $aulas);
 
-            return [$i->id => [
+            $resultado[$i->id] = [
                 'aulas' => $aulas,
                 'presencas' => $minhas->where('estado', Presenca::PRESENTE)->count(),
                 'atrasos' => $minhas->where('estado', Presenca::ATRASO)->count(),
@@ -127,8 +127,10 @@ class AulaService
                 'justificadas' => $faltas->count() - $injustificadas,
                 'percentagem' => $percentagem,
                 'abaixo' => $percentagem !== null && $percentagem < $minima,
-            ]];
-        });
+            ];
+        }
+
+        return $resultado;
     }
 
     /** As horas do horário dessa disciplina nesse dia da semana, para sugerir ao registar a aula. */
