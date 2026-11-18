@@ -1,4 +1,5 @@
 import { Bloco, LinhaVazia, TituloPagina } from '@/components/erp';
+import { GradeHorario, type Tempo } from '@/components/horario';
 import { NavDocencia } from '@/components/seccoes';
 import { usePode } from '@/hooks/use-pode';
 import AppLayout from '@/layouts/app-layout';
@@ -19,9 +20,10 @@ interface Leccionacao {
 interface Props {
     docente: { id: number; nome: string } | null;
     leccionacoes: Leccionacao[];
+    horario: Tempo[];
 }
 
-export default function MinhasTurmas({ docente, leccionacoes }: Props) {
+export default function MinhasTurmas({ docente, leccionacoes, horario }: Props) {
     const pode = usePode();
     const porPeriodo = leccionacoes.reduce<Record<string, Leccionacao[]>>((grupos, l) => {
         const chave = `${l.periodo} · ${l.ano_lectivo}`;
@@ -47,6 +49,9 @@ export default function MinhasTurmas({ docente, leccionacoes }: Props) {
                 </div>
             ) : (
                 <div className="flex flex-col gap-5">
+                    <Bloco titulo="O meu horário">
+                        <GradeHorario tempos={horario} detalhes={['turma', 'sala']} vazio="Não tem aulas no horário do período em curso." />
+                    </Bloco>
                     {Object.entries(porPeriodo).map(([periodo, linhas]) => (
                         <Bloco key={periodo} titulo={periodo}>
                             <table className="tabela">

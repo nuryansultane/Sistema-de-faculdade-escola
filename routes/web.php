@@ -7,6 +7,7 @@ use App\Http\Controllers\Administracao\UtilizadorController;
 use App\Http\Controllers\Avaliacao\AvaliacaoController;
 use App\Http\Controllers\Avaliacao\PautaController;
 use App\Http\Controllers\Docencia\DocenteController;
+use App\Http\Controllers\Docencia\HorarioController;
 use App\Http\Controllers\Docencia\MinhasTurmasController;
 use App\Http\Controllers\Docencia\TurmaController;
 use App\Http\Controllers\Documentos\DocumentoController;
@@ -134,6 +135,10 @@ Route::middleware(['auth:web'])->group(function () {
         Route::middleware('can:distribuicao.gerir')->controller(TurmaController::class)->group(function () {
             Route::post('turmas/{turma}/disciplinas', 'acrescentarDisciplina')->name('turmas.disciplinas.store');
             Route::put('leccionacoes/{leccionacao}', 'atribuirDocente')->name('leccionacoes.docente');
+        });
+        Route::middleware('can:horarios.gerir')->group(function () {
+            Route::post('turmas/{turma}/horario', [HorarioController::class, 'store'])->name('horarios.store');
+            Route::delete('horarios/{horario}', [HorarioController::class, 'destroy'])->name('horarios.destroy');
         });
         Route::middleware('can:docentes.gerir')->group(function () {
             Route::post('docentes', [DocenteController::class, 'store'])->name('docentes.store');

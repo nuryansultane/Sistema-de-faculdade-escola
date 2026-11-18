@@ -1,4 +1,5 @@
 import { Bloco, CabecalhoFicha, Campo, Campos, ErroFicha, LinhaForm, LinhaVazia } from '@/components/erp';
+import { GradeHorario, type Tempo } from '@/components/horario';
 import InputError from '@/components/input-error';
 import { formatCreditos, NavDocencia } from '@/components/seccoes';
 import { Button } from '@/components/ui/button';
@@ -9,7 +10,7 @@ import { useTermos } from '@/hooks/use-termos';
 import AppLayout from '@/layouts/app-layout';
 import { type Opcao, type SharedData } from '@/types';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
-import { Pencil, Shuffle, Trash2 } from 'lucide-react';
+import { CalendarPlus, Pencil, Shuffle, Trash2 } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 
 interface Turma {
@@ -58,6 +59,116 @@ interface Props {
     docentes: Opcao[];
     disciplinas: Opcao[];
     regimes: Opcao[];
+    horario: Tempo[];
+    salas: Opcao[];
+    dias: Opcao[];
+}
+
+/* ---------------------------------------------------------------- Horário */
+
+/** "08:00" + 90 → "09:30" (sem passar das 23:00) */
+const somarMinutos = (hora: string, mais: number) => {
+    const [h, m] = hora.split(':').map(Number);
+    const total = Math.min(h * 60 + m + mais, 23 * 60);
+    return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+};
+
+function NovoTempo({
+    turmaId,
+    leccionacoes,
+    salas,
+    dias,
+    fechar,
+}: {
+    turmaId: number;
+    leccionacoes: Leccionacao[];
+    salas: Opcao[];
+    dias: Opcao[];
+    fechar: () => void;
+}) {
+    const { data, setData, post, processing, errors } = useForm({
+        leccionacao_id: String(leccionacoes[0]?.id ?? ''),
+        dia: '1',
+        inicio: '08:00',
+        fim: '09:30',
+        sala_id: '',
+    });
+    const guardar = (e: FormEvent) => {
+        e.preventDefault();
+        // Fica aberto para o tempo seguinte: só muda a hora
+        post(route('horarios.store', turmaId), {
+            preserveScroll: true,
+            onSuccess: () => setData((d) => ({ ...d, inicio: d.fim, fim: somarMinutos(d.fim, 90) })),
+        });
+    };
+    return (
+        <form onSubmit={guardar} className="border-b">
+            <LinhaForm rotulo="Disciplina" htmlFor="h_leccionacao" obrigatorio>
+                <CaixaEscolha
+                    id="h_leccionacao"
+                    value={data.leccionacao_id}
+                    onChange={(e) => setData('leccionacao_id', e.target.value)}
+                    className="max-w-96"
+                >
+                    {leccionacoes.map((l) => (
+                        <option key={l.id} value={l.id}>
+                            {l.disciplina}
+                            {l.docente ? ` · ${l.docente}` : ' · docente por atribuir'}
+                        </option>
+                    ))}
+                </CaixaEscolha>
+                <InputError message={errors.leccionacao_id} className="mt-1" />
+            </LinhaForm>
+            <LinhaForm rotulo="Quando" htmlFor="h_dia" obrigatorio ajuda="A turma, o docente e a sala não podem ter outra aula a esta hora.">
+                <div className="flex flex-wrap items-center gap-2">
+                    <CaixaEscolha id="h_dia" value={data.dia} onChange={(e) => setData('dia', e.target.value)} className="w-36">
+                        {dias.map((d) => (
+                            <option key={d.valor} value={d.valor}>
+                                {d.rotulo}
+                            </option>
+                        ))}
+                    </CaixaEscolha>
+                    <Input
+                        type="time"
+                        value={data.inicio}
+                        onChange={(e) => setData('inicio', e.target.value)}
+                        className="w-32"
+                        aria-label="Início"
+                        step={300}
+                    />
+                    <span className="text-muted-foreground text-[13px]">às</span>
+                    <Input
+                        type="time"
+                        value={data.fim}
+                        onChange={(e) => setData('fim', e.target.value)}
+                        className="w-32"
+                        aria-label="Fim"
+                        step={300}
+                    />
+                </div>
+                <InputError message={errors.dia ?? errors.inicio ?? errors.fim} className="mt-1" />
+            </LinhaForm>
+            <LinhaForm rotulo="Sala" htmlFor="h_sala">
+                <CaixaEscolha id="h_sala" value={data.sala_id} onChange={(e) => setData('sala_id', e.target.value)} className="max-w-80">
+                    <option value="">Sem sala</option>
+                    {salas.map((s) => (
+                        <option key={s.valor} value={s.valor}>
+                            {s.rotulo}
+                        </option>
+                    ))}
+                </CaixaEscolha>
+                <InputError message={errors.sala_id} className="mt-1" />
+            </LinhaForm>
+            <div className="flex justify-end gap-2 px-5 py-3">
+                <Button type="button" variant="outline" onClick={fechar}>
+                    Fechar
+                </Button>
+                <Button type="submit" disabled={processing || data.leccionacao_id === ''}>
+                    Acrescentar ao horário
+                </Button>
+            </div>
+        </form>
+    );
 }
 
 function AlterarTurma({ turma, docentes, regimes, fechar }: { turma: Turma; docentes: Opcao[]; regimes: Opcao[]; fechar: () => void }) {
@@ -128,12 +239,13 @@ function AlterarTurma({ turma, docentes, regimes, fechar }: { turma: Turma; doce
     );
 }
 
-export default function TurmaFicha({ turma, leccionacoes, estudantes, outrasTurmas, docentes, disciplinas, regimes }: Props) {
+export default function TurmaFicha({ turma, leccionacoes, estudantes, outrasTurmas, docentes, disciplinas, regimes, horario, salas, dias }: Props) {
     const pode = usePode();
     const termos = useTermos();
     const { errors } = usePage<SharedData & { errors: Record<string, string> }>().props;
     const [alterar, setAlterar] = useState(false);
     const [disciplina, setDisciplina] = useState('');
+    const [novoTempo, setNovoTempo] = useState(false);
     const doAno = estudantes.filter((e) => !e.em_atraso);
     const emAtraso = estudantes.filter((e) => e.em_atraso);
 
@@ -155,6 +267,10 @@ export default function TurmaFicha({ turma, leccionacoes, estudantes, outrasTurm
             { disciplina_id: disciplina },
             { preserveScroll: true, onSuccess: () => setDisciplina('') },
         );
+    };
+    const retirarTempo = (t: Tempo) => {
+        if (!confirm(`Retirar ${t.disciplina} de ${t.inicio}–${t.fim} do horário?`)) return;
+        router.delete(route('horarios.destroy', t.id), { preserveScroll: true });
     };
     const apagar = () => {
         if (!confirm(`Apagar a turma ${turma.designacao}?`)) return;
@@ -271,6 +387,24 @@ export default function TurmaFicha({ turma, leccionacoes, estudantes, outrasTurm
                             </Button>
                         </div>
                     )}
+                </Bloco>
+
+                <Bloco
+                    titulo="Horário"
+                    accoes={
+                        pode('horarios.gerir') &&
+                        !novoTempo &&
+                        leccionacoes.length > 0 && (
+                            <Button size="sm" variant="outline" onClick={() => setNovoTempo(true)}>
+                                <CalendarPlus /> Acrescentar tempo
+                            </Button>
+                        )
+                    }
+                >
+                    {novoTempo && (
+                        <NovoTempo turmaId={turma.id} leccionacoes={leccionacoes} salas={salas} dias={dias} fechar={() => setNovoTempo(false)} />
+                    )}
+                    <GradeHorario tempos={horario} remover={pode('horarios.gerir') ? retirarTempo : undefined} />
                 </Bloco>
 
                 <Bloco

@@ -1,4 +1,5 @@
 import { Estado, type CorEstado } from '@/components/erp';
+import { GradeHorario, type Tempo } from '@/components/horario';
 import InputError from '@/components/input-error';
 import { formatCreditos } from '@/components/seccoes';
 import { Button } from '@/components/ui/button';
@@ -49,6 +50,7 @@ interface Props {
         documento_numero: string | null;
     }[];
     tiposDocumento: Opcao[];
+    horario: Tempo[];
 }
 
 const COR_PEDIDO: Record<string, CorEstado> = {
@@ -107,7 +109,7 @@ function Caixa({ titulo, children }: { titulo: string; children: ReactNode }) {
 }
 
 /** O portal do estudante: matrículas, disciplinas e notas publicadas, propinas e pagamentos. */
-export default function PainelPortal({ instituicao, estudante, matriculas, financas, pedidos, tiposDocumento }: Props) {
+export default function PainelPortal({ instituicao, estudante, matriculas, financas, pedidos, tiposDocumento, horario }: Props) {
     const actual = matriculas[0];
     const { flash } = usePage<{ flash?: { sucesso?: string } }>().props;
 
@@ -155,6 +157,12 @@ export default function PainelPortal({ instituicao, estudante, matriculas, finan
                         </div>
                     ))}
                 </div>
+
+                {horario.length > 0 && (
+                    <Caixa titulo="Horário">
+                        <GradeHorario tempos={horario} detalhes={['docente', 'sala']} />
+                    </Caixa>
+                )}
 
                 {matriculas.length === 0 && <p className="text-muted-foreground text-[13.5px]">Ainda não tem matrícula.</p>}
                 {matriculas.map((m) =>

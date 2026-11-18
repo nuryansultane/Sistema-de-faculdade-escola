@@ -29,6 +29,8 @@ use Illuminate\Validation\ValidationException;
  */
 class TurmaService
 {
+    public function __construct(private HorarioService $horarios) {}
+
     public function criar(AnoLectivo $ano, ?PeriodoLectivo $periodo, Curso $curso, int $anoCurricular, string $nome, ?string $regime, int $capacidade): Turma
     {
         $superior = TipoInstituicao::eSuperior();
@@ -132,6 +134,10 @@ class TurmaService
     {
         if ($docente !== null && ! $docente->activo) {
             throw ValidationException::withMessages(['docente_id' => "{$docente->nome} está inactivo."]);
+        }
+        if ($docente !== null && $docente->id !== $leccionacao->docente_id) {
+            // Os tempos desta disciplina não podem chocar com as aulas que o docente já tem
+            $this->horarios->exigirDocenteLivre($leccionacao, $docente);
         }
         DB::transaction(function () use ($leccionacao, $docente) {
             $leccionacao->update(['docente_id' => $docente?->id]);

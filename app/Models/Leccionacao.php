@@ -49,6 +49,12 @@ class Leccionacao extends Model
         return $this->hasMany(ComponenteAvaliacao::class, 'leccionacao_id')->orderBy('ordem')->orderBy('id');
     }
 
+    /** @return HasMany<Horario, $this> */
+    public function horarios(): HasMany
+    {
+        return $this->hasMany(Horario::class, 'leccionacao_id')->orderBy('dia')->orderBy('inicio');
+    }
+
     /** @return HasMany<Pauta, $this> */
     public function pautas(): HasMany
     {

@@ -3,9 +3,12 @@
 namespace App\Http\Controllers\Docencia;
 
 use App\Http\Controllers\Controller;
+use App\Models\AnoLectivo;
 use App\Models\Docente;
+use App\Models\Horario;
 use App\Models\Leccionacao;
 use App\Models\User;
+use App\Services\HorarioService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -13,7 +16,7 @@ use Inertia\Response;
 /** O docente vê as disciplinas e turmas que lhe foram distribuídas (é aqui que vão entrar as pautas e as presenças). */
 class MinhasTurmasController extends Controller
 {
-    public function __invoke(Request $request): Response
+    public function __invoke(Request $request, HorarioService $horarios): Response
     {
         /** @var User $user */
         $user = $request->user();
@@ -26,7 +29,12 @@ class MinhasTurmasController extends Controller
             ->sortBy(fn (Leccionacao $l) => [-$l->turma->anoLectivo->inicio->timestamp, $l->turma->periodo->numero ?? 0, $l->disciplina->nome])
             ->values();
 
+        // O horário da semana: as disciplinas do período em curso
+        $ano = AnoLectivo::emCurso();
+        $horario = $docente === null || $ano === null ? collect() : $horarios->doDocenteNoPeriodo($docente, $ano->id, $ano->periodoEmCurso()?->id);
+
         return Inertia::render('docencia/minhas-turmas', [
+            'horario' => $horario->map(fn (Horario $h) => $h->paraGrelha())->values(),
             'docente' => $docente?->only(['id', 'nome']),
             'leccionacoes' => $leccionacoes->map(fn (Leccionacao $l) => [
                 'id' => $l->id,

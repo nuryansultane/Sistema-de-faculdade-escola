@@ -8,11 +8,13 @@ use App\Models\AnoLectivo;
 use App\Models\Curso;
 use App\Models\Disciplina;
 use App\Models\Docente;
+use App\Models\Horario;
 use App\Models\Inscricao;
 use App\Models\InscricaoPeriodo;
 use App\Models\Leccionacao;
 use App\Models\Matricula;
 use App\Models\PeriodoLectivo;
+use App\Models\Sala;
 use App\Models\Turma;
 use App\Services\TurmaService;
 use App\Support\Opcoes;
@@ -159,6 +161,12 @@ class TurmaController extends Controller
             'disciplinas' => Disciplina::where('activo', true)->whereNotIn('id', $naTurma)->orderBy('nome')->get()
                 ->map(fn (Disciplina $d) => ['valor' => (string) $d->id, 'rotulo' => "{$d->codigo} · {$d->nome}"])->values(),
             'regimes' => Opcoes::de(Matricula::regimes()),
+            'horario' => Horario::with(['leccionacao.disciplina', 'leccionacao.turma', 'leccionacao.docente', 'sala'])
+                ->whereIn('leccionacao_id', $ids)->orderBy('dia')->orderBy('inicio')->get()
+                ->map(fn (Horario $h) => $h->paraGrelha())->values(),
+            'salas' => Sala::where('activo', true)->orderBy('codigo')->get()
+                ->map(fn (Sala $s) => ['valor' => (string) $s->id, 'rotulo' => $s->codigo.($s->nome ? " · {$s->nome}" : '')." ({$s->capacidade} lugares)"])->values(),
+            'dias' => collect(Horario::DIAS)->map(fn (string $nome, int $dia) => ['valor' => (string) $dia, 'rotulo' => $nome])->values(),
         ]);
     }
 

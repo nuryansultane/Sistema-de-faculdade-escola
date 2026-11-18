@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Cobranca;
 use App\Models\ContaPortal;
 use App\Models\DocumentoEmitido;
+use App\Models\Horario;
 use App\Models\Inscricao;
 use App\Models\InscricaoPeriodo;
 use App\Models\Matricula;
@@ -83,6 +84,12 @@ class PainelController extends Controller
                     'documento_numero' => $p->documento?->numero,
                 ])->values(),
             'tiposDocumento' => Opcoes::de(DocumentoEmitido::TIPOS),
+            // O horário: as aulas das disciplinas em que está inscrito agora (ainda sem resultado)
+            'horario' => Horario::with(['leccionacao.disciplina', 'leccionacao.turma', 'leccionacao.docente', 'sala'])
+                ->whereIn('leccionacao_id', Inscricao::where('estudante_id', $estudante->id)->where('estado', Inscricao::INSCRITO)
+                    ->whereNotNull('leccionacao_id')->pluck('leccionacao_id'))
+                ->orderBy('dia')->orderBy('inicio')->get()
+                ->map(fn (Horario $h) => $h->paraGrelha())->values(),
         ]);
     }
 }
