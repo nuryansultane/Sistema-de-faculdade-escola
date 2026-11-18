@@ -6,6 +6,7 @@ use App\Http\Controllers\Administracao\PerfilController;
 use App\Http\Controllers\Administracao\UtilizadorController;
 use App\Http\Controllers\Avaliacao\AvaliacaoController;
 use App\Http\Controllers\Avaliacao\PautaController;
+use App\Http\Controllers\Docencia\AulaController;
 use App\Http\Controllers\Docencia\DocenteController;
 use App\Http\Controllers\Docencia\HorarioController;
 use App\Http\Controllers\Docencia\MinhasTurmasController;
@@ -136,6 +137,12 @@ Route::middleware(['auth:web'])->group(function () {
             Route::post('turmas/{turma}/disciplinas', 'acrescentarDisciplina')->name('turmas.disciplinas.store');
             Route::put('leccionacoes/{leccionacao}', 'atribuirDocente')->name('leccionacoes.docente');
         });
+        // Sumários e presenças: quem vê e quem regista decide-se na disciplina (AulaService)
+        Route::get('disciplinas/{leccionacao}/aulas', [AulaController::class, 'index'])->name('aulas.index');
+        Route::post('disciplinas/{leccionacao}/aulas', [AulaController::class, 'store'])->name('aulas.store');
+        Route::put('aulas/{aula}', [AulaController::class, 'update'])->name('aulas.update');
+        Route::post('presencas/{presenca}/justificar', [AulaController::class, 'justificar'])->middleware('can:presencas.justificar')->name('presencas.justificar');
+
         Route::middleware('can:horarios.gerir')->group(function () {
             Route::post('turmas/{turma}/horario', [HorarioController::class, 'store'])->name('horarios.store');
             Route::delete('horarios/{horario}', [HorarioController::class, 'destroy'])->name('horarios.destroy');

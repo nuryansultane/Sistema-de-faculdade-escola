@@ -16,6 +16,7 @@ interface Disciplina {
     nome: string;
     creditos: number;
     em_atraso: boolean;
+    faltas: number;
     resultado: string | null;
     nota: number | null;
 }
@@ -175,6 +176,7 @@ export default function PainelPortal({ instituicao, estudante, matriculas, finan
                                             <div className="font-medium">{d.nome}</div>
                                             <div className="text-muted-foreground text-[12px]">
                                                 {formatCreditos(d.creditos)} créditos{d.em_atraso && ' · em atraso'}
+                                                {d.faltas > 0 && ` · ${d.faltas} ${d.faltas === 1 ? 'falta' : 'faltas'}`}
                                             </div>
                                         </div>
                                         <div className="shrink-0 text-right">

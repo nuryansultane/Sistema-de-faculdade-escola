@@ -12,6 +12,7 @@ use App\Models\InscricaoPeriodo;
 use App\Models\Matricula;
 use App\Models\Pagamento;
 use App\Models\PedidoDocumento;
+use App\Models\Presenca;
 use App\Services\PagamentoService;
 use App\Support\Definicoes;
 use App\Support\Dinheiro;
@@ -34,6 +35,10 @@ class PainelController extends Controller
         $estudante->load(['matriculas' => fn ($q) => $q->with(['curso', 'anoLectivo', 'inscricoesPeriodo' => fn ($i) => $i->with(['periodo', 'inscricoes.disciplina'])])->where('estado', '!=', Matricula::ANULADA)]);
         $cobrancas = Cobranca::where('estudante_id', $estudante->id)->where('estado', '!=', 'anulada')->orderBy('vencimento')->get();
         $abertas = $cobrancas->whereIn('estado', ['aberta', 'parcial']);
+        // As faltas por justificar de cada disciplina
+        $faltas = Presenca::whereIn('inscricao_id', Inscricao::where('estudante_id', $estudante->id)->pluck('id'))
+            ->where('estado', Presenca::FALTA)->where('justificada', false)
+            ->get()->countBy('inscricao_id');
 
         return Inertia::render('portal/painel', [
             'instituicao' => ['nome' => $definicoes->nome(), 'logotipo' => $definicoes->urlLogotipo()],
@@ -52,6 +57,7 @@ class PainelController extends Controller
                         'nome' => $i->disciplina->nome,
                         'creditos' => (float) $i->creditos,
                         'em_atraso' => $i->em_atraso,
+                        'faltas' => (int) $faltas->get($i->id, 0),
                         // Só as pautas publicadas mudam o estado da inscrição: enquanto está "inscrito", não há nota para mostrar
                         'resultado' => $i->estado === Inscricao::INSCRITO ? null : (Inscricao::ESTADOS[$i->estado] ?? $i->estado),
                         'nota' => $i->estado === Inscricao::INSCRITO || $i->nota_final === null ? null : (float) $i->nota_final,

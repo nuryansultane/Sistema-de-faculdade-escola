@@ -86,12 +86,20 @@ export default function MinhasTurmas({ docente, leccionacoes, horario }: Props) 
                                             <td>{l.curso}</td>
                                             <td className="text-right tabular-nums">{l.estudantes}</td>
                                             <td>
-                                                <Link
-                                                    href={route('avaliacao.show', l.id)}
-                                                    className="text-[13px] whitespace-nowrap underline-offset-2 hover:underline"
-                                                >
-                                                    Notas e pauta
-                                                </Link>
+                                                <div className="flex justify-end gap-4">
+                                                    <Link
+                                                        href={route('aulas.index', l.id)}
+                                                        className="text-[13px] whitespace-nowrap underline-offset-2 hover:underline"
+                                                    >
+                                                        Sumários e presenças
+                                                    </Link>
+                                                    <Link
+                                                        href={route('avaliacao.show', l.id)}
+                                                        className="text-[13px] whitespace-nowrap underline-offset-2 hover:underline"
+                                                    >
+                                                        Notas e pauta
+                                                    </Link>
+                                                </div>
                                             </td>
                                         </tr>
                                     ))}

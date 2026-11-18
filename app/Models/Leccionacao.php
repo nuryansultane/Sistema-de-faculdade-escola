@@ -55,6 +55,12 @@ class Leccionacao extends Model
         return $this->hasMany(Horario::class, 'leccionacao_id')->orderBy('dia')->orderBy('inicio');
     }
 
+    /** @return HasMany<Aula, $this> */
+    public function aulas(): HasMany
+    {
+        return $this->hasMany(Aula::class, 'leccionacao_id')->orderByDesc('data')->orderByDesc('inicio');
+    }
+
     /** @return HasMany<Pauta, $this> */
     public function pautas(): HasMany
     {

@@ -341,6 +341,11 @@ export default function TurmaFicha({ turma, leccionacoes, estudantes, outrasTurm
                                         ) : (
                                             l.disciplina
                                         )}
+                                        <div className="text-muted-foreground text-[12px] font-normal">
+                                            <Link href={route('aulas.index', l.id)} className="hover:underline">
+                                                Sumários e presenças
+                                            </Link>
+                                        </div>
                                     </td>
                                     <td className="text-right tabular-nums">{formatCreditos(l.creditos)}</td>
                                     <td>
